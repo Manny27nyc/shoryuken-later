@@ -8,6 +8,8 @@ Lint/AmbiguousBlockAssociation:
   Enabled: false
 Metrics/BlockLength:
   Enabled: false
+Metrics/ClassLength:
+  Enabled: false
 Style/Documentation:
   Enabled: false
 Performance/TimesMap:

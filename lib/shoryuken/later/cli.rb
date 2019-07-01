@@ -11,6 +11,7 @@ require 'erb'
 require 'shoryuken/later'
 require 'shoryuken/later/poller'
 require 'timers'
+require 'aws-sdk-dynamodb'
 
 module Shoryuken
   module Later
@@ -102,7 +103,7 @@ module Shoryuken
       def daemonize
         return unless Shoryuken::Later.options[:daemon]
 
-        raise ArgumentError, "You really should set a logfile if you're going to daemonize" unless Shoryuken::Later.options[:logfile]
+        raise ArgumentError, "You really should set a logfile if you're going to daemonize" unless Shoryuken::Later.options[:later][:logfile]
 
         files_to_reopen = []
         ObjectSpace.each_object(File) do |file|
@@ -118,7 +119,7 @@ module Shoryuken
         end
 
         [$stdout, $stderr].each do |io|
-          File.open(Shoryuken::Later.options[:logfile], 'ab') do |f|
+          File.open(Shoryuken::Later.options[:later][:logfile], 'ab') do |f|
             io.reopen(f)
           end
           io.sync = true
@@ -161,7 +162,7 @@ module Shoryuken
           end
 
           o.on '-L', '--logfile PATH', 'Path to writable logfile' do |arg|
-            opts[:logfile] = arg
+            opts[:later][:logfile] = arg
           end
 
           o.on '-P', '--pidfile PATH', 'Path to pidfile' do |arg|
@@ -235,7 +236,7 @@ module Shoryuken
       end
 
       def initialize_logger
-        Shoryuken::Logging.initialize_logger(Shoryuken::Later.options[:logfile]) if Shoryuken::Later.options[:logfile]
+        Shoryuken::Logging.initialize_logger(Shoryuken::Later.options[:later][:logfile]) if Shoryuken::Later.options[:later][:logfile]
 
         Shoryuken::Later.logger.level = Logger::DEBUG if Shoryuken::Later.options[:verbose]
       end
