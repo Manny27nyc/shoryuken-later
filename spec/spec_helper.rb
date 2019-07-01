@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'bundler/setup'
 Bundler.setup
 
@@ -9,12 +11,12 @@ end
 require 'shoryuken-later'
 require 'json'
 
-options_file = File.join(File.expand_path('../..', __FILE__), 'shoryuken.yml')
+options_file = File.join(File.expand_path('..', __dir__), 'shoryuken.yml')
 
 $options = {}
 
-if File.exists? options_file
-  $options = YAML.load(File.read(options_file)).deep_symbolize_keys
+if File.exist? options_file
+  $options = YAML.safe_load(File.read(options_file)).deep_symbolize_keys
 
   Aws.config = $options[:aws]
 end
@@ -23,25 +25,29 @@ Shoryuken.logger.level = Logger::UNKNOWN
 
 # For Ruby 1.9
 module Kernel
-  def Hash(arg)
-    case arg
-    when NilClass
-      {}
-    when Hash
-      arg
-    when Array
-      Hash[*arg]
-    else
-      raise TypeError
+  unless method_defined? :Hash
+    def Hash(arg)
+      case arg
+      when NilClass
+        {}
+      when Hash
+        arg
+      when Array
+        Hash[*arg]
+      else
+        raise TypeError
+      end
     end
-  end unless method_defined? :Hash
+  end
 end
 
 # For Ruby 1.9
 class Hash
-  def to_h
-    self
-  end unless method_defined? :to_h
+  unless method_defined? :to_h
+    def to_h
+      self
+    end
+  end
 end
 
 class TestWorker
@@ -64,7 +70,7 @@ RSpec.configure do |config|
     Shoryuken::Later.options[:later] = {}
     Shoryuken::Later.options[:later][:delay] = 60
     Shoryuken::Later.options[:later][:tables] = ['shoryuken_later']
-    Shoryuken::Later.options[:timeout]       = 1
+    Shoryuken::Later.options[:timeout] = 1
 
     Shoryuken::Later.options[:aws] = {}
 

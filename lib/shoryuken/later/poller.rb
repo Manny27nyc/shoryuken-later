@@ -28,13 +28,13 @@ module Shoryuken
           end
 
           logger.debug { "Poller for '#{table_name}' completed in #{elapsed(started_at)} ms" }
-        rescue => ex
+        rescue StandardError => ex
           logger.error "Error fetching message: #{ex}"
           logger.error ex.backtrace.first
         end
       end
 
-    private
+      private
 
       def client
         Shoryuken::Later::Client
@@ -43,14 +43,14 @@ module Shoryuken
       # Fetches the next available item from the schedule table.
       def next_item
         client.first_item table_name, 'perform_at' => {
-                attribute_value_list: [ (Time.now + Shoryuken::Later::MAX_QUEUE_DELAY).to_i ],
-                comparison_operator:  'LT'
-              }
+          attribute_value_list: [(Time.now + Shoryuken::Later::MAX_QUEUE_DELAY).to_i],
+          comparison_operator: 'LT'
+        }
       end
 
       # Processes an item and enqueues it (unless another actor has already enqueued it).
       def process_item(item)
-        time, worker_class, args, id = item.values_at('perform_at','shoryuken_class','shoryuken_args','id')
+        time, worker_class, args, id = item.values_at('perform_at', 'shoryuken_class', 'shoryuken_args', 'id')
 
         worker_class = worker_class.constantize
         args = JSON.parse(args)
@@ -65,7 +65,7 @@ module Shoryuken
         end
 
         # Now the item is safe to be enqueued, since the conditional delete succeeded.
-        body, options = args.values_at('body','options')
+        body, options = args.values_at('body', 'options')
         if queue_name.nil?
           worker_class.perform_in(time, body, options)
 
@@ -80,7 +80,6 @@ module Shoryuken
           Shoryuken::Client.queues(queue_name).send_message(options)
         end
       end
-
     end
   end
 end
