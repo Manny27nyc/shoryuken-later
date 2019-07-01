@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 describe Shoryuken::Later::Client do
@@ -18,19 +20,19 @@ describe Shoryuken::Later::Client do
       expect(described_class.tables(table)).to eq(table_description)
     end
   end
-  
+
   describe '.create_item' do
     it 'creates an item with a supplied ID' do
-      expect(ddb).to receive(:put_item).with(table_name: table, item: {'id' => 'fubar'}, expected: {id: {exists: false}})
-        
-      described_class.create_item(table,'id' => 'fubar')
+      expect(ddb).to receive(:put_item).with(table_name: table, item: { 'id' => 'fubar' }, expected: { id: { exists: false } })
+
+      described_class.create_item(table, 'id' => 'fubar')
     end
-    
+
     it 'creates an item with a auto-generated ID' do
       expect(SecureRandom).to receive(:uuid).once.and_return('fubar')
-      expect(ddb).to receive(:put_item).with(table_name: table, item: {'id' => 'fubar', 'perform_at' => 1234}, expected: {id: {exists: false}})
-        
-      described_class.create_item(table,'perform_at' => 1234)
+      expect(ddb).to receive(:put_item).with(table_name: table, item: { 'id' => 'fubar', 'perform_at' => 1234 }, expected: { id: { exists: false } })
+
+      described_class.create_item(table, 'perform_at' => 1234)
     end
   end
 end

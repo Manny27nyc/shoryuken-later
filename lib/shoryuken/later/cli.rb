@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Most of this has been "borrowed" from Shoryuken.
 
 # @see Shoryuken::CLI
@@ -34,35 +36,33 @@ module Shoryuken
         validate!
         daemonize
         write_pid
-        
+
         Shoryuken::Logging.with_context '[later]' do
           logger.info 'Starting'
           start
         end
       end
-      
+
       protected
-      
+
       def poll_tables
         logger.debug "Polling schedule tables"
-        @pollers.each do |poller|
-          poller.poll
-        end
+        @pollers.each(&:poll)
         logger.debug "Polling done"
       end
 
       private
-      
+
       def start
         # Initialize the timers and poller.
         @timers = Timers::Group.new
-        @pollers = Shoryuken::Later.tables.map{|tbl| Poller.new(tbl) }
-          
+        @pollers = Shoryuken::Later.tables.map { |tbl| Poller.new(tbl) }
+
         begin
           # Poll for items on startup, and every :poll_delay
           poll_tables
-          @timers.every(Shoryuken::Later.poll_delay){ poll_tables }
-          
+          @timers.every(Shoryuken::Later.poll_delay) { poll_tables }
+
           # Loop watching for signals and firing off of timers
           while @timers
             interval = @timers.wait_interval
@@ -112,11 +112,9 @@ module Shoryuken
         Process.daemon(true, true)
 
         files_to_reopen.each do |file|
-          begin
-            file.reopen file.path, "a+"
-            file.sync = true
-          rescue ::Exception
-          end
+          file.reopen file.path, "a+"
+          file.sync = true
+        rescue ::Exception
         end
 
         [$stdout, $stderr].each do |io|
@@ -139,14 +137,14 @@ module Shoryuken
       end
 
       def parse_options(argv)
-        opts = {later: {}}
+        opts = { later: {} }
 
         @parser = OptionParser.new do |o|
           o.on '-d', '--daemon', 'Daemonize process' do |arg|
             opts[:daemon] = arg
           end
 
-          o.on '-t', '--table TABLE...', 'Table to process' do |arg|
+          o.on '-t', '--table TABLE...', 'Table to process' do |_arg|
             Shoryuken::Later.tables << args
           end
 
@@ -174,7 +172,7 @@ module Shoryuken
             opts[:verbose] = arg
           end
 
-          o.on '-V', '--version', 'Print version and exit' do |arg|
+          o.on '-V', '--version', 'Print version and exit' do |_arg|
             puts "Shoryuken::Later #{Shoryuken::Later::VERSION}"
             exit 0
           end
@@ -216,21 +214,21 @@ module Shoryuken
 
         Shoryuken::Later.options[:later].merge!(options.delete(:later) || {})
         Shoryuken::Later.options.merge!(options)
-        
+
         # Tables from command line options take precedence...
         unless Shoryuken::Later.tables.any?
           tables = Shoryuken::Later.options[:later][:tables]
 
           # Use the default table if none were specified in the config file.
           tables << Shoryuken::Later.default_table if tables.empty?
-          
+
           Shoryuken::Later.tables.replace(tables)
         end
       end
 
       def parse_config(config_file)
         if File.exist?(config_file)
-          YAML.load(ERB.new(IO.read(config_file)).result)
+          YAML.safe_load(ERB.new(IO.read(config_file)).result)
         else
           raise ArgumentError, "Config file #{config_file} does not exist"
         end
@@ -246,20 +244,17 @@ module Shoryuken
         raise ArgumentError, 'No tables given to poll' if Shoryuken::Later.tables.empty?
 
         if Shoryuken::Later.options[:aws][:access_key_id].nil? && Shoryuken::Later.options[:aws][:secret_access_key].nil?
-          if ENV['AWS_ACCESS_KEY_ID'].nil? && ENV['AWS_SECRET_ACCESS_KEY'].nil?
-            raise ArgumentError, 'No AWS credentials supplied'
-          end
+          raise ArgumentError, 'No AWS credentials supplied' if ENV['AWS_ACCESS_KEY_ID'].nil? && ENV['AWS_SECRET_ACCESS_KEY'].nil?
         end
 
         initialize_aws
 
         Shoryuken::Later.tables.uniq.each do |table|
           # validate all tables and AWS credentials consequently
-          begin
-            Shoryuken::Later::Client.tables table
-          rescue Aws::DynamoDB::Errors::ResourceNotFoundException => e
-            raise ArgumentError, "Table '#{table}' does not exist"
-          end
+
+          Shoryuken::Later::Client.tables table
+        rescue Aws::DynamoDB::Errors::ResourceNotFoundException => e
+          raise ArgumentError, "Table '#{table}' does not exist"
         end
       end
 
@@ -267,22 +262,25 @@ module Shoryuken
         # aws-sdk tries to load the credentials from the ENV variables: AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
         # when not explicit supplied
         return if Shoryuken::Later.options[:aws].empty?
-  
-        shoryuken_keys = %i(
+
+        shoryuken_keys = %i[
           account_id
           sns_endpoint
           sqs_endpoint
-          receive_message)
-  
-        aws_options = Shoryuken::Later.options[:aws].reject do |k, v|
+          receive_message
+        ]
+
+        aws_options = Shoryuken::Later.options[:aws].reject do |k, _v|
           shoryuken_keys.include?(k)
         end
-  
+
         credentials = Aws::Credentials.new(
           aws_options.delete(:access_key_id),
-          aws_options.delete(:secret_access_key))
-  
-        Aws.config = aws_options.merge(credentials: credentials)
+          aws_options.delete(:secret_access_key)
+        )
+
+        aws_options = aws_options.merge(credentials: credentials) if credentials.set?
+        Aws.config.update(aws_options)
       end
 
       def require_workers
