@@ -28,8 +28,8 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "rake", '~> 10.0'
   spec.add_development_dependency "rspec", '~> 3.0', '< 3.1'
 
-  spec.add_dependency "aws-sdk-dynamodb"
-  spec.add_dependency "aws-sdk-sqs"
+  spec.add_dependency "aws-sdk-dynamodb", "~> 1.32.0"
+  spec.add_dependency "aws-sdk-sqs", ">= 1.17.0"
   spec.add_dependency "shoryuken", ">= 4.0.0"
   spec.add_dependency "timers", "~> 4.1.0"
 end
