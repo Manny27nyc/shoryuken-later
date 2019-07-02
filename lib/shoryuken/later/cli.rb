@@ -47,6 +47,8 @@ module Shoryuken
       protected
 
       def poll_tables
+        puts "Polling schedule tables (#{@pollers.count})"
+
         logger.debug "Polling schedule tables"
         @pollers.each(&:poll)
         logger.debug "Polling done"
@@ -62,6 +64,9 @@ module Shoryuken
         begin
           # Poll for items on startup, and every :poll_delay
           poll_tables
+
+          puts "Starting polling every #{Shoryuken::Later.poll_delay} secs"
+
           @timers.every(Shoryuken::Later.poll_delay) { poll_tables }
 
           # Loop watching for signals and firing off of timers
@@ -75,6 +80,7 @@ module Shoryuken
             end
           end
         rescue Interrupt
+          puts "Interrupt, exiting"
           @timers.cancel
           exit 0
         end
@@ -111,6 +117,8 @@ module Shoryuken
         end
 
         Process.daemon(true, true)
+
+        puts files_to_reopen.join(", ")
 
         files_to_reopen.each do |file|
           file.reopen file.path, "a+"
