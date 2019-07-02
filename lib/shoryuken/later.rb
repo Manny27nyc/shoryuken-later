@@ -7,8 +7,7 @@ require 'shoryuken/later/worker'
 
 module Shoryuken
   module Later
-    # MAX_QUEUE_DELAY = 15 * 60
-    MAX_QUEUE_DELAY = 10
+    MAX_QUEUE_DELAY = 15 * 60
 
     DEFAULT_POLL_DELAY = 5 * 60
 
