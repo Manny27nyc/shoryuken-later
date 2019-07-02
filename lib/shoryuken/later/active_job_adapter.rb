@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Build on top of Shoryuken's ActiveJob adapter.
 
 # @see ActiveJob::QueueAdapter::ShoryukenAdapter
@@ -31,7 +33,7 @@ module ActiveJob
         register_worker!(job)
 
         delay = (timestamp - Time.current.to_f).round
-        if delay > 15.minutes
+        if delay > Shoryuken::Later::MAX_QUEUE_DELAY
           Shoryuken::Later::Client.create_item(Shoryuken::Later.default_table, perform_at: Time.current.to_i + delay.to_i,
                                                                                shoryuken_queue: job.queue_name, shoryuken_class: JobWrapper.to_s,
                                                                                shoryuken_args: JSON.dump(body: job.serialize, options: {}))

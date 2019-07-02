@@ -14,14 +14,14 @@ describe 'Shoryuken::Worker' do
 
   describe '.perform_later' do
     it 'delays a message for up to 15 minutes in the future' do
-      expect(sqs_queue).to receive(:send_message).with(message_body: 'message', message_attributes: msg_attrs, delay_seconds: 15 * 60)
+      expect(sqs_queue).to receive(:send_message).with(message_body: 'message', message_attributes: msg_attrs, delay_seconds: Shoryuken::Later::MAX_QUEUE_DELAY)
 
-      TestWorker.perform_later(15 * 60, 'message')
+      TestWorker.perform_later(Shoryuken::Later::MAX_QUEUE_DELAY, 'message')
     end
 
     it 'schedules a message for over 15 minutes in the future' do
       json = JSON.dump(body: 'message', options: {})
-      future = Time.now + 15 * 60 + 1
+      future = Time.now + Shoryuken::Later::MAX_QUEUE_DELAY + 1
 
       expect(Shoryuken::Later::Client).to receive(:create_item) do |_table, attrs|
         expect(attrs[:perform_at]).to be >= future.to_i
@@ -29,7 +29,7 @@ describe 'Shoryuken::Worker' do
         expect(attrs[:shoryuken_class]).to eq('TestWorker')
       end
 
-      TestWorker.perform_later(15 * 60 + 1, 'message')
+      TestWorker.perform_later(Shoryuken::Later::MAX_QUEUE_DELAY + 1, 'message')
     end
   end
 end
