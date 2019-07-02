@@ -71,8 +71,8 @@ module Shoryuken
 
           # Loop watching for signals and firing off of timers
           while @timers
-            interval = @timers.wait_interval
-            readable, writable = IO.select([@self_read], nil, nil, interval)
+            interval = [@timers.wait_interval, 1].max
+            readable, _writable = IO.select([@self_read], nil, nil, interval)
             if readable
               handle_signal readable.first.gets.strip
             else
